@@ -16,6 +16,31 @@ Trie.prototype.push = function (word, data) {
     node.data = data
 }
 
+Trie.prototype.pull = function (word) {
+    let node = this.root
+    let nodeList = [[this.root, '']]
+    for (let c of word) {
+        node = node[c]
+        nodeList.push([node[c], c])
+    }
+
+    // 1. 标记为非叶子节点
+    delete node.isW
+    // 2. 向上递归，没有下级节点，移除当前节点
+    let _node = nodeList.pop()[0] // {c:node[c]}
+    while(_node){
+        _key = _node[1]
+        // 父级节点
+        _pNode = nodeList.pop()[0]
+        if (Object.keys(_pNode) === 1) {
+            delete _pNode[_key]
+        } else {
+            nodeList = null
+            break
+        }
+    }
+}
+
 Trie.prototype.search = function (word, caseSensitive) {
     let node = this.root
     if (!caseSensitive) {
