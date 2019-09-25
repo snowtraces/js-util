@@ -4,38 +4,36 @@ window.$ = (function (window, $) {
      * @param {String} wrapperSelector 
      * @param {String} resultType 
      */
-    const dragUpload = function (wrapperSelector, resultType) {
-        return new Promise((resolve, reject) => {
-            let isSupportDrag = function () {
-                let div = document.createElement('div');
-                return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window
-            }()
-            if (!isSupportDrag) {
-                reject ? reject() : alert('浏览器不支持拖拽上传')
-                return
+    const dragUpload = function (wrapperSelector, callback, resultType) {
+        let isSupportDrag = function () {
+            let div = document.createElement('div');
+            return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window
+        }()
+        if (!isSupportDrag) {
+            reject ? reject() : alert('浏览器不支持拖拽上传')
+            return
+        }
+        $.bindEvent(
+            'html',
+            'drag dragstart dragend dragover dragenter dragleave drop',
+            (event) => {
+                event.preventDefault()
+                event.stopPropagation()
             }
-            $.bindEvent(
-                'html',
-                'drag dragstart dragend dragover dragenter dragleave drop',
-                (event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                }
-            )
-            $.bindEvent(wrapperSelector, 'dragover dragenter', () => { $.el(wrapperSelector).classList = 'is-dragover' })
-            $.bindEvent(wrapperSelector, 'dragleave dragend drop', () => { $.el(wrapperSelector).classList = '' })
-            $.bindEvent(wrapperSelector, 'drop', (event) => {
-                let droppedFiles = event.dataTransfer.files
-                let reader = new FileReader()
-                if (resultType && resultType === 'binary') {
-                    reader.readAsDataURL(droppedFiles[0])
-                } else {
-                    reader.readAsText(droppedFiles[0])
-                }
-                reader.onload = () => {
-                    resolve(reader.result)
-                }
-            })
+        )
+        $.bindEvent(wrapperSelector, 'dragover dragenter', () => { $.el(wrapperSelector).classList = 'is-dragover' })
+        $.bindEvent(wrapperSelector, 'dragleave dragend drop', () => { $.el(wrapperSelector).classList = '' })
+        $.bindEvent(wrapperSelector, 'drop', (event) => {
+            let droppedFiles = event.dataTransfer.files
+            let reader = new FileReader()
+            if (resultType && resultType === 'binary') {
+                reader.readAsDataURL(droppedFiles[0])
+            } else {
+                reader.readAsText(droppedFiles[0])
+            }
+            reader.onload = () => {
+                callback(reader.result)
+            }
         })
     }
 
