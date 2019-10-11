@@ -5,8 +5,18 @@ class Octree {
     constructor() {
         this.reducible = new Array(8).fill(null)
         this.leafNum = 0
-        this.blockSize = 47
+        this.blockSize = 1
         this.root = new OctreeNode()
+    }
+}
+
+/**
+ * 可变链表节点
+ */
+class ReducibleNode {
+    constructor(node ,next) {
+        this.octreeNode = node || null;
+        this.next = next || null;
     }
 }
 
@@ -21,9 +31,6 @@ class OctreeNode {
         this.green = 0;
         this.blue = 0;
         this.children = new Array(8);
-        // 这里的 next 不是指兄弟链中的 next 指针
-        // 而是在 reducible 链表中的下一个节点
-        this.next = null;
     }
 }
 
@@ -45,6 +52,7 @@ Octree.prototype.themeColor = function (imageSelector, maxNumberOfColor = 8) {
     this.buildOctree(array, maxNumberOfColor);
 
     // 叶子节点遍历，输出最终颜色
+    log(this)
     let colors = []
     this.colorsStats(this.root, colors)
     
@@ -61,8 +69,7 @@ Octree.prototype.createNode = function (level) {
         node.isLeaf = true;
         this.leafNum++;
     } else {
-        node.next = this.reducible[level];
-        this.reducible[level] = node;
+        this.reducible[level] = new ReducibleNode(node, this.reducible[level])
     }
 
     return node;
@@ -107,10 +114,11 @@ Octree.prototype.reduceTree = function () {
     }
 
     // get the node and remove it from reducible link
-    let node = this.reducible[level];
-    this.reducible[level] = node.next;
+    let reducibleNode = this.reducible[level];
+    this.reducible[level] = reducibleNode.next;
 
     // merge children
+    let node = reducibleNode.octreeNode
     node.children.forEach(child => {
         if (child) {
             node.red += child.red
@@ -123,6 +131,7 @@ Octree.prototype.reduceTree = function () {
     })
 
     node.isLeaf = true
+    node.children = null
     this.leafNum++
 }
 
