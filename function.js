@@ -173,8 +173,13 @@ window.$ = (function (window, $) {
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4) {
                     if (xhr.status >= 200 && xhr.status < 400) {
-                        let result = JSON.parse(xhr.responseText)
-                        resolve(result);
+                        if (xhr.responseText
+                            && (xhr.responseText.charAt(0) === '[' || xhr.responseText.charAt(0)) === '{') {
+                            let result = JSON.parse(xhr.responseText)
+                            resolve(result);
+                        } else {
+                            resolve(xhr.responseText)
+                        }
                     } else {
                         reject ? reject() : errorMsg(result.msg || '失败')
                     }
@@ -190,8 +195,13 @@ window.$ = (function (window, $) {
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4) {
                     if (xhr.status >= 200 && xhr.status < 400) {
-                        let result = JSON.parse(xhr.responseText)
-                        resolve(result);
+                        if (xhr.responseText
+                            && (xhr.responseText.charAt(0) === '[' || xhr.responseText.charAt(0)) === '{') {
+                            let result = JSON.parse(xhr.responseText)
+                            resolve(result);
+                        } else {
+                            resolve(xhr.responseText)
+                        }
                         successMsg(result.msg || '成功')
                     } else {
                         reject ? reject() : errorMsg(result.msg || '失败')
