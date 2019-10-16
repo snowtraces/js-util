@@ -18,22 +18,25 @@ Trie.prototype.push = function (word, data) {
 
 Trie.prototype.pull = function (word) {
     let node = this.root
-    let nodeList = [[this.root, '']]
+    let nodeList = [['', this.root]]
     for (let c of word) {
         node = node[c]
-        nodeList.push([node[c], c])
+        nodeList.push([c, node])
     }
 
     // 1. 标记为非叶子节点
     delete node.isW
+    delete node.data
     // 2. 向上递归，没有下级节点，移除当前节点
-    let _node = nodeList.pop()[0] // {c:node[c]}
-    while(_node){
-        _key = _node[1]
+    let _node = nodeList.pop() // {c:node[c]}
+    while (_node) {
+        let key = _node[0]
+        let node = _node[1]
         // 父级节点
-        _pNode = nodeList.pop()[0]
-        if (Object.keys(_pNode) === 1) {
-            delete _pNode[_key]
+        let _pNode = nodeList.pop()
+        if (_pNode && Object.keys(node).length === 0) {
+            delete _pNode[1][key]
+            _node = _pNode
         } else {
             nodeList = null
             break
@@ -91,7 +94,6 @@ Trie.prototype.init = function (data) {
         } else {
             localStorage.setItem(this.key, JSON.stringify(this.root))
         }
-    
     }
 }
 
