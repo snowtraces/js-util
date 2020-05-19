@@ -44,7 +44,7 @@ window.$ = (function (window, $) {
 
         let tableTmplate = `<div class="std-table-header">
         <div class="left"></div>
-        <div class="right"><button class="add">+新增</button></div>
+        <div class="right"><button class="add btn-black btn-fade">+新增</button></div>
         </div>
         <table class='std-table'>
             <thead>
