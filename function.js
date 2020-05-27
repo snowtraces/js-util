@@ -174,7 +174,7 @@ window.$ = (function (window, $) {
                 if (xhr.readyState == 4) {
                     if (xhr.status >= 200 && xhr.status < 400) {
                         if (xhr.responseText
-                            && (xhr.responseText.charAt(0) === '[' || xhr.responseText.charAt(0)) === '{') {
+                            && (xhr.responseText.charAt(0) === '[' || xhr.responseText.charAt(0) === '{')) {
                             let result = JSON.parse(xhr.responseText)
                             resolve(result);
                         } else {
