@@ -2,7 +2,9 @@ window.$ = (function (window, $) {
     const mdParser = function (mdText) {
         let result = {}
         let result_list = []
+        let script_list = []
         result.post = result_list
+        result.script = script_list
 
         let flag_newLine = true;
         let line_idx = -1;
@@ -19,6 +21,8 @@ window.$ = (function (window, $) {
         let pair_chars = ['`'];
         let on_text_block = false;
         let paragraph_cache = '';
+
+
         for (const c of mdText) {
             // 新行初始化
             if (flag_newLine) {
@@ -75,15 +79,20 @@ window.$ = (function (window, $) {
                             }
 
                             // 数据出栈
-                            let data_seg = popStack(data_stack, pair_1, on_text_block)
-                            if (typeof data_seg === 'object') {
+                            let poped_data = popStack(data_stack, pair_1, on_text_block)
+                            data_seg = poped_data.data
+                            if (poped_data.type === 'meta') {
                                 result.meta = data_seg
                             } else {
+                                if (poped_data.type === 'exec' && poped_data.script) {
+                                    script_list.push(...poped_data.script)
+                                }
                                 if (!on_text_block) {
                                     if (pair_1 === '```') {
                                         // 本文块结束
                                         result_list.push(`${(paragraph_cache + data_seg).trim()}`)
                                         paragraph_cache = '';
+
                                     } else {
                                         // 普通文本（段落模式）
                                         if (c && c === '\n') {
@@ -105,8 +114,9 @@ window.$ = (function (window, $) {
                         on_text_block = pair_stack[0] === '```'
 
                         // 孤pair 数据出栈
-                        let data_seg = popStack(data_stack)
-                        if (typeof data_seg === 'object') {
+                        let poped_data = popStack(data_stack)
+                        data_seg = poped_data.data
+                        if (poped_data.type === 'meta') {
                             result.meta = data_seg
                         } else {
                             if (data_seg && data_seg.startsWith('# ')) {
@@ -151,10 +161,15 @@ window.$ = (function (window, $) {
                 }
 
                 // 数据出栈
-                let data_seg = popStack(data_stack, pair_1)
-                if (typeof data_seg === 'object') {
+                let poped_data = popStack(data_stack, pair_1)
+                data_seg = poped_data.data
+
+                if (poped_data.type === 'meta') {
                     result.meta = data_seg
                 } else {
+                    if (poped_data.type === 'exec' && poped_data.script) {
+                        script_list.push(...poped_data.script)
+                    }
                     if (!on_text_block) {
                         // 段落模式
                         result_list.push(`<p>${paragraph_cache + data_seg}</p>`)
@@ -168,8 +183,9 @@ window.$ = (function (window, $) {
             }
         } else {
             // 数据出栈
-            let data_seg = popStack(data_stack)
-            if (typeof data_seg === 'object') {
+            let poped_data = popStack(data_stack)
+            data_seg = poped_data.data
+            if (poped_data.type === 'meta') {
                 result.meta = data_seg
             } else {
                 // 段落模式
@@ -183,22 +199,46 @@ window.$ = (function (window, $) {
     }
 
     const popStack = function (data_stack, pair, plainText) {
+        let result = {}
         let text = data_stack.join('');
         if (plainText || !pair) {
-            return text;
+            if (!text) {
+                return text;
+            }
+            // 超链接
+            result.data = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/, '<a title="$1" href="$2" target="_blank">$1</a>')
+            result.type = 'text'
+
+            return result
         } else {
             if (pair === '`') {
-                return `<code>${text}</code>`
+                result.data = `<code>${text}</code>`
+                result.type = 'text'
+                return result
             } else if (pair === '```') {
+                // 文本块
                 let firstLineIdx = data_stack.indexOf('\n')
                 let type = data_stack.slice(0, firstLineIdx).join('').trim()
                 text = data_stack.slice(firstLineIdx + 1).join('')
 
                 if (type === 'meta') {
                     // 解析meta信息
-                    return metaParser(text);
+                    return {
+                        data: metaParser(text),
+                        type: 'meta'
+                    }
+                } else if (type === 'exec') {
+                    if (/<script\s+src=[\"\']([^\"\']+)[\"\']+/.test(text)) {
+                        let scriptSrc = /<script\s+src=[\"\']([^\"\']+)[\"\']+/.exec(text)[1]
+                        result.script = [scriptSrc]
+                    }
+                    result.data = text;
+                    result.type = 'exec';
+                    return result;
                 } else {
-                    return `<pre class="line-numbers language-${type}"><code class="language-${type}">${text.trim()}</code></pre>`
+                    result.type = 'block'
+                    result.data = `<pre class="line-numbers language-${type}"><code class="language-${type}">${text.trim()}</code></pre>`
+                    return result
                 }
             }
         }
