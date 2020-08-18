@@ -206,9 +206,17 @@ window.$ = (function (window, $) {
                 return text;
             }
             // 超链接
-            result.data = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/, '<a title="$1" href="$2" target="_blank">$1</a>')
-            result.type = 'text'
+            text = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/, '<a title="$1" href="$2" target="_blank">$1</a>')
+            // 标题
+            if (text.indexOf('## ') !== -1) {
+                text = text.replace(/(\n|^)## ([^\n]*)(\n|$)/g, '</p><h2>$2</h2><p>')
+            }
+            if (text.indexOf('## ') !== -1) {
+                text = text.replace(/(\n|^)### ([^\n]*)(\n|$)/g, '</p><h3>$2</h3><p>')
+            }
 
+            result.data = text
+            result.type = 'text'
             return result
         } else {
             if (pair === '`') {
