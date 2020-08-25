@@ -16,12 +16,11 @@ window.$ = (function (window, $) {
 
         let pair_stack = [];
         let data_stack = [];
+        let line_data_stack = [];
         let last_pair_idx = -1;
 
-        let pair_chars = ['`'];
+        let pair_chars = ['```', '+', '|'];
         let on_text_block = false;
-        let paragraph_cache = '';
-
 
         for (const c of mdText) {
             // 新行初始化
@@ -41,193 +40,114 @@ window.$ = (function (window, $) {
                 start_idx[line_idx] = char_idx;
             }
 
-            // 压栈
-            if (pair_chars.includes(c)) {
-                // 命中 pair
-                if (last_pair_idx === -1) {
-                    pair_stack.push(c);
-                } else {
-                    // 如果是连续的
-                    if (last_pair_idx + 1 === char_idx) {
-                        let last_pair = pair_stack.pop()
-                        if (last_char === c) {
-                            // 和上一个字符相同，合并pair
-                            pair_stack.push(last_pair + c);
+            if (flag_newLine) {
+                // 新行开始
+                let pair_size = pair_chars.length;
+                let pair_matched = false;
+                let cached_data = line_data_stack.join('')
+                for (let i = 0; i < pair_size; i++) {
+                    let pair = pair_chars[i]
+                    if (cached_data.startsWith(pair)) {
+                        pair_matched = true;
+                        if (on_text_block) {
+                            // 在数据块中，判断当前是否已结束
+                            // 结束了就弹出数据
+                            if (pair_chars.includes(line_data_stack[0]) || line_data_stack[0] === '`') {
+                                if (line_data_stack[0] !== '`' && line_data_stack[0] === c) {
+                                    continue
+                                }
+
+                                let popped_data = popStack(data_stack, pair_stack[0])
+                                let data_seg = popped_data.data
+                                pair_stack.pop()
+                                data_stack = []
+                                if (popped_data.type === 'meta') {
+                                    result.meta = data_seg
+                                } else {
+                                    if (popped_data.type === 'exec' && popped_data.script) {
+                                        script_list.push(...popped_data.script)
+                                    }
+
+                                    data_seg && data_seg.trim() && result_list.push(`${data_seg.trim()}`)
+                                }
+
+                                on_text_block = false
+                            }
                         } else {
-                            // // 和上一个字符不相同，重新压入
-                            pair_stack.push(last_pair)
-                            pair_stack.push(c)
+                            // 开始数据块
+                            on_text_block = true
+                            pair_stack.push(pair)
+
+                            data_stack = pair === '```' ? data_stack.slice(pair.length) : data_stack
                         }
+                        break
+                    }
+                }
+
+                // 没有命中pair
+                if (!pair_matched) {
+                    if (on_text_block) {
+                        // 数据块中
+                        // do nothing
                     } else {
-                        pair_stack.push(c);
-                    }
-                }
-
-                last_pair_idx = char_idx;
-            } else {
-                // 非pair
-                if (last_pair_idx + 1 == char_idx) {
-                    // 相邻字符
-                    if (pair_stack.length >= 2) {
-                        // 判断pair是否成组
-                        let pair_1 = pair_stack.pop()
-                        let pair_2 = pair_stack.pop()
-
-                        if (pair_1 === pair_2) {
-                            if (on_text_block && pair_1 === '```') {
-                                on_text_block = false;
-                            }
-
-                            // 数据出栈
-                            let poped_data = popStack(data_stack, pair_1, on_text_block)
-                            data_seg = poped_data.data
-                            if (poped_data.type === 'meta') {
-                                result.meta = data_seg
-                            } else {
-                                if (poped_data.type === 'exec' && poped_data.script) {
-                                    script_list.push(...poped_data.script)
-                                }
-                                if (!on_text_block) {
-                                    if (pair_1 === '```') {
-                                        // 本文块结束
-                                        result_list.push(`${(paragraph_cache + data_seg).trim()}`)
-                                        paragraph_cache = '';
-
-                                    } else {
-                                        // 普通文本（段落模式）
-                                        if (c && c === '\n') {
-                                            // 换行
-                                            result_list.push(`<p>${(paragraph_cache + data_seg).trim()}</p>`)
-                                            paragraph_cache = '';
-                                        } else {
-                                            paragraph_cache += data_seg;
-                                        }
-                                    }
-                                } else {
-                                    // 文本块中
-                                    paragraph_cache += data_seg;
-                                }
-                            }
-                            data_stack = [];
-                        }
-                    } else if (pair_stack.length === 1) {
-                        on_text_block = pair_stack[0] === '```'
-
-                        // 孤pair 数据出栈
-                        let poped_data = popStack(data_stack)
-                        data_seg = poped_data.data
-                        if (poped_data.type === 'meta') {
-                            result.meta = data_seg
-                        } else {
-                            if (data_seg && data_seg.startsWith('# ')) {
-                                $.log('一级标题', data_seg)
-                            } else {
-                                if (!on_text_block) {
-                                    // 普通文本（段落模式）
-                                    if (c && c === '\n') {
-                                        // 换行
-                                        result_list.push(`<p>${(paragraph_cache + data_seg).trim()}</p>`)
-                                        paragraph_cache = '';
-                                    } else {
-                                        paragraph_cache += data_seg;
-                                    }
-                                } else {
-                                    // 普通文本结束
-                                    result_list.push(`<p>${(paragraph_cache + data_seg).trim()}</p>`)
-                                    paragraph_cache = '';
-                                }
-                            }
-                        }
+                        // 段落模式中，换行
+                        let popped_data = popStack(data_stack)
+                        let data_seg = popped_data.data
                         data_stack = []
+                        data_seg && data_seg.trim() && result_list.push(`<p>${data_seg.trim()}</p>`)
                     }
                 }
-                // 数据入栈
-                data_stack.push(c)
+
+                line_data_stack = []
             }
+
+            data_stack.push(c)
+            line_data_stack.push(c)
+
             // 新行状态切换
             flag_newLine = c && c === '\n'
             last_char = c
         }
 
-        // 结束处理
-        if (pair_stack.length >= 2) {
-            // 判断pair是否成组
-            let pair_1 = pair_stack.pop()
-            let pair_2 = pair_stack.pop()
-
-            if (pair_1 === pair_2) {
-                if (on_text_block) {
-                    on_text_block = pair_1 !== '```'
-                }
-
-                // 数据出栈
-                let poped_data = popStack(data_stack, pair_1)
-                data_seg = poped_data.data
-
-                if (poped_data.type === 'meta') {
-                    result.meta = data_seg
-                } else {
-                    if (poped_data.type === 'exec' && poped_data.script) {
-                        script_list.push(...poped_data.script)
-                    }
-                    if (!on_text_block) {
-                        // 段落模式
-                        result_list.push(`<p>${paragraph_cache + data_seg}</p>`)
-                        paragraph_cache = '';
-                    } else {
-                        // 文本块
-                        paragraph_cache += data_seg;
-                    }
-                }
-                data_stack = []
-            }
-        } else {
-            // 数据出栈
-            let poped_data = popStack(data_stack)
-            data_seg = poped_data.data
-            if (poped_data.type === 'meta') {
-                result.meta = data_seg
-            } else {
-                // 段落模式
-                result_list.push(`<p>${paragraph_cache + data_seg}</p>`)
-                paragraph_cache = '';
-            }
-            data_stack = []
-        }
-
         return result;
+    }
+
+    const html2Escape = function (sHtml) {
+        return sHtml.replace(/[<>&"]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]; });
     }
 
     const popStack = function (data_stack, pair, plainText) {
         let result = {}
         let text = data_stack.join('');
         if (plainText || !pair) {
-            if (!text) {
-                return text;
+            if (!text || /^\s+$/.test(text) || /^# /.test(text)) {
+                return result;
             }
+
+
+            // 图片
+            text = text.replace(/\!\[([^\]]+)\]\(([^\)]+)\)/g, '<img title="$1" src="$2" />')
             // 超链接
-            text = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/, '<a title="$1" href="$2" target="_blank">$1</a>')
+            text = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a title="$1" href="$2" target="_blank">$1</a>')
             // 标题
             if (text.indexOf('## ') !== -1) {
-                text = text.replace(/(\n|^)## ([^\n]*)(\n|$)/g, '</p><h2>$2</h2><p>')
+                text = text.replace(/(\n|^)## ([^\n]*)(\n|$)/g, '<h2>$2</h2>')
             }
             if (text.indexOf('## ') !== -1) {
-                text = text.replace(/(\n|^)### ([^\n]*)(\n|$)/g, '</p><h3>$2</h3><p>')
+                text = text.replace(/(\n|^)### ([^\n]*)(\n|$)/g, '<h3>$2</h3>')
             }
+
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
 
             result.data = text
             result.type = 'text'
             return result
         } else {
-            if (pair === '`') {
-                result.data = `<code>${text}</code>`
-                result.type = 'text'
-                return result
-            } else if (pair === '```') {
+            if (pair === '```') {
                 // 文本块
                 let firstLineIdx = data_stack.indexOf('\n')
                 let type = data_stack.slice(0, firstLineIdx).join('').trim()
-                text = data_stack.slice(firstLineIdx + 1).join('')
+                text = data_stack.slice(firstLineIdx + 1, data_stack.length - 5).join('')
 
                 if (type === 'meta') {
                     // 解析meta信息
@@ -236,8 +156,8 @@ window.$ = (function (window, $) {
                         type: 'meta'
                     }
                 } else if (type === 'exec') {
-                    if (/<script\s+src=[\"\']([^\"\']+)[\"\']+/.test(text)) {
-                        let scriptSrc = /<script\s+src=[\"\']([^\"\']+)[\"\']+/.exec(text)[1]
+                    if (/<script.*?src=[\"\']([^\"\']+)[\"\']+/.test(text)) {
+                        let scriptSrc = /<script.*?src=[\"\']([^\"\']+)[\"\']+/.exec(text)[1]
                         result.script = [scriptSrc]
                     }
                     result.data = text;
@@ -245,11 +165,82 @@ window.$ = (function (window, $) {
                     return result;
                 } else {
                     result.type = 'block'
-                    result.data = `<pre class="line-numbers language-${type}"><code class="language-${type}">${text.trim()}</code></pre>`
+                    result.data = `<pre class="line-numbers language-${type}"><code class="language-${type}">${html2Escape(text.trim())}</code></pre>`
                     return result
                 }
+            } else if (pair === '|') {
+                // 表格
+                let table_regex = /(\|.*\|\s*\n)+/
+                let table_matched = text.match(table_regex)
+                if (table_matched && table_matched[0]) {
+                    let raw_table = table_matched[0]
+                    let table_html = tableParser(raw_table)
+
+                    text = text.replace(table_regex, table_html)
+                }
+
+                result.data = text
+                result.type = 'table'
+                return result
+            } else if (pair === '+') {
+
+                // 列表
+                let ul_regex = /(^|\n)(\+ .*\s*(\n|$))+/
+                let ul_matched = text.match(ul_regex)
+                if (ul_matched && ul_matched[0]) {
+                    let raw_ul = ul_matched[0]
+                    let li_array = raw_ul.split('\n').map(li => li.trim()).filter(li => li).map(li => li.substr(2))
+                    let ul_html = `<ul>${li_array.map(li => `<li>${html2Escape(li)}</li>`).join('')}</ul>`
+
+                    text = text.replace(ul_regex, ul_html)
+                }
+
+                text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
+
+                result.data = text
+                result.type = 'ul'
+                return result
             }
         }
+    }
+
+
+    const tableParser = function (tableText) {
+        let rows = tableText.split("\n")
+        if (rows.length <= 2) {
+            return tableText
+        }
+
+        // 表头
+        let table_header = rows[0].split('|')
+        table_header.pop()
+        table_header.shift()
+        table_header = table_header.map(title => title.trim())
+
+        // TODO 表对齐规则
+        // 表数据
+        let data_rows = rows.filter((_, idx) => idx > 1)
+            .map(row => {
+                data_row = row.split('|')
+                data_row.pop()
+                data_row.shift()
+                return data_row.map(data => data.trim())
+            })
+
+        // 转换成html
+        return `
+        <table>
+            <thead>
+                <tr>
+                    ${table_header.map(title => `<th>${title}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody>
+                ${
+            data_rows.map(row => `<tr>${row.map(data => `<td>${data}</td>`).join('')}</tr>`).join('')
+            }
+            </tbody>
+        </table>`
     }
 
     const metaParser = function (metaText) {
