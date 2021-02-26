@@ -44,6 +44,11 @@ window.$ = (function (window, $) {
     const firstUpperCase = ([first, ...rest]) => first.toUpperCase() + rest.join('')
 
     /**
+     * 下划线转驼峰式
+     */
+    const toCamelCase = (name) => name.toLowerCase().replace(/_(\w)/g, (x) => {return x[1].toUpperCase()})
+
+    /**
      * 复制文本
      */
     const copy = function (text) {
@@ -226,6 +231,7 @@ window.$ = (function (window, $) {
         bindEvent: bindEvent,
         bindEventForce: bindEventForce,
         firstUpperCase: firstUpperCase,
+        toCamelCase: toCamelCase,
         copy: copy,
         log: log,
         errorMsg: errorMsg,
