@@ -44,34 +44,6 @@ window.$ = (function (window, $) {
     const firstUpperCase = ([first, ...rest]) => first.toUpperCase() + rest.join('')
 
     /**
-     * 下划线转驼峰式
-     */
-    const toCamelCase = (name) => name.toLowerCase().replace(/_(\w)/g, (x) => {return x[1].toUpperCase()})
-
-    /**
-     * 时间格式化
-     */
-    const dateFormat = (fmt, date) => {
-        let ret;
-        const opt = {
-            "Y+": date.getFullYear().toString(),        // 年
-            "m+": (date.getMonth() + 1).toString(),     // 月
-            "d+": date.getDate().toString(),            // 日
-            "H+": date.getHours().toString(),           // 时
-            "M+": date.getMinutes().toString(),         // 分
-            "S+": date.getSeconds().toString()          // 秒
-            // 有其他格式化字符需求可以继续添加，必须转化成字符串
-        };
-        for (let k in opt) {
-            ret = new RegExp("(" + k + ")").exec(fmt);
-            if (ret) {
-                fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
-            };
-        };
-        return fmt;
-    }
-
-    /**
      * 复制文本
      */
     const copy = function (text) {
@@ -172,9 +144,11 @@ window.$ = (function (window, $) {
     const debounce = function (func, delay) {
         let timeout = null
         return function () {
-            clearTimeout(timeout)
+            if (timeout) {
+                clearTimeout(timeout)
+            }
             timeout = setTimeout(() => {
-                func.call()
+                func.call(this, arguments)
             }, delay || 300)
         }
     }
@@ -254,8 +228,6 @@ window.$ = (function (window, $) {
         bindEvent: bindEvent,
         bindEventForce: bindEventForce,
         firstUpperCase: firstUpperCase,
-        toCamelCase: toCamelCase,
-        dateFormat: dateFormat,
         copy: copy,
         log: log,
         errorMsg: errorMsg,
