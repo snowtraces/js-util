@@ -170,14 +170,29 @@ window.$ = (function (window, $) {
      * 抖动处理
      */
     const debounce = function (func, delay) {
-        let timeout = null
+        let timer = null
         return function () {
-            if (timeout) {
-                clearTimeout(timeout)
+            if (timer) {
+                clearTimeout(timer)
             }
-            timeout = setTimeout(() => {
+            timer = setTimeout(() => {
                 func.apply(this, arguments)
             }, delay || 300)
+        }
+    }
+
+    /**
+     * 节流throttle代码（定时器）：
+     */
+    const throttle = function (func, delay) {
+        var timer = null;
+        return function () {
+            if (!timer) {
+                timer = setTimeout(() => {
+                    func.apply(this, arguments);
+                    timer = null;
+                }, delay || 300);
+            }
         }
     }
 
@@ -263,6 +278,7 @@ window.$ = (function (window, $) {
         errorMsg: errorMsg,
         successMsg: successMsg,
         debounce: debounce,
+        throttle: throttle,
         evalTemplate: evalTemplate,
         post: post,
         get: get,
