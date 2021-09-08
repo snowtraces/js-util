@@ -176,7 +176,7 @@ window.$ = (function (window, $) {
                 clearTimeout(timeout)
             }
             timeout = setTimeout(() => {
-                func.call(this, arguments)
+                func.apply(this, arguments)
             }, delay || 300)
         }
     }
