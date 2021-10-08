@@ -32,7 +32,7 @@ window.$ = (function (window, $) {
             (delegation ? el(delegation) : document).addEventListener(e, (_e) => {
                 const _list = elAll(selector)
                 _list.forEach(
-                    item => (_e.target === item || item.contains(_e.target)) && func.call(item, _e)
+                    item => (_e.target === item || item.contains(_e.target)) && func.call(item, _e, item)
                 )
             }, false)
         })
@@ -46,7 +46,9 @@ window.$ = (function (window, $) {
     /**
      * 下划线转驼峰式
      */
-    const toCamelCase = (name) => name.toLowerCase().replace(/_(\w)/g, (x) => { return x[1].toUpperCase() })
+    const toCamelCase = (name) => name.toLowerCase().replace(/_(\w)/g, (x) => {
+        return x[1].toUpperCase()
+    })
 
     /**
      * 时间格式化
@@ -66,8 +68,10 @@ window.$ = (function (window, $) {
             ret = new RegExp("(" + k + ")").exec(fmt);
             if (ret) {
                 fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
-            };
-        };
+            }
+            ;
+        }
+        ;
         return fmt;
     }
 
@@ -247,13 +251,36 @@ window.$ = (function (window, $) {
                         } else {
                             resolve(xhr.responseText)
                         }
-                        successMsg(result.msg || '成功')
                     } else {
                         reject ? reject() : errorMsg(result.msg || '失败')
                     }
                 }
             }
             xhr.send(json2FormData(data));
+        })
+    }
+
+    const request = function (url, data, method = 'POST') {
+        return new Promise((resolve, reject) => {
+            var xhr = new XMLHttpRequest();
+            xhr.open(method, url, true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4) {
+                    if (xhr.status >= 200 && xhr.status < 400) {
+                        if (xhr.responseText
+                            && (xhr.responseText.charAt(0) === '[' || xhr.responseText.charAt(0)) === '{') {
+                            let result = JSON.parse(xhr.responseText)
+                            resolve(result);
+                        } else {
+                            resolve(xhr.responseText)
+                        }
+                    } else {
+                        reject ? reject() : errorMsg(result.msg || '失败')
+                    }
+                }
+            }
+            xhr.send(JSON.stringify(data));
         })
     }
 
@@ -282,6 +309,7 @@ window.$ = (function (window, $) {
         evalTemplate: evalTemplate,
         post: post,
         get: get,
+        request: request,
     }
     for (const _func in func) {
         $[_func] = func[_func]
