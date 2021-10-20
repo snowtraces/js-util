@@ -210,7 +210,7 @@ window.$ = (function (window, $) {
     }
 
     /**
-     * 异步请求
+     * 异步请求 get
      */
     const get = function (url, data) {
         return new Promise((resolve, reject) => {
@@ -237,6 +237,10 @@ window.$ = (function (window, $) {
             xhr.send(null);
         })
     }
+
+    /**
+     * 异步请求 post
+     */
     const post = function (url, data) {
         return new Promise((resolve, reject) => {
             var xhr = new XMLHttpRequest();
@@ -260,6 +264,9 @@ window.$ = (function (window, $) {
         })
     }
 
+    /**
+     * 异步请求 request
+     */
     const request = function (url, data, method = 'POST') {
         return new Promise((resolve, reject) => {
             var xhr = new XMLHttpRequest();
@@ -282,6 +289,48 @@ window.$ = (function (window, $) {
             }
             xhr.send(JSON.stringify(data));
         })
+    }
+
+    /**
+     * 瀑布流
+     */
+    const waterfall = function (containerSelector, itemSelector, padding = 12, defaultColumnSize = 3, minWidth = 260) {
+        let columnSize = defaultColumnSize;
+        let container = $.el(containerSelector)
+        let totalWidth = container.offsetWidth
+
+        let singleWidth = ~~((totalWidth - (columnSize - 1) * padding) / columnSize)
+        while (singleWidth < 260) {
+            columnSize -= 1
+            singleWidth = ~~((totalWidth - (columnSize - 1) * padding) / columnSize)
+        }
+
+        let lastPosition = Array(columnSize).fill(0)
+
+        // 宽度计算
+        $.elAll(itemSelector).forEach((item, idx) => {
+            item.setAttribute(`style`, `width: ${singleWidth}px;`)
+        })
+
+        // 生成瀑布流
+        $.elAll(itemSelector).forEach((item, idx) => {
+            let _height = item.offsetHeight
+
+            // 1. 最小位置
+            let minPosition = Math.min(...lastPosition)
+            let _column = lastPosition.indexOf(minPosition)
+
+            // 2. 挂载当前数据
+            let _top = ~~(minPosition + padding);
+            let _left = ~~(_column * (singleWidth + padding))
+            item.setAttribute(`style`, `width: ${singleWidth}px;left: ${_left}px; top: ${_top}px`)
+
+            // 3. 更新上下文
+            lastPosition[_column] = lastPosition[_column] + padding + _height
+        })
+
+        // 绑定resize
+        window.onresize = this.throttle(() => waterfall(containerSelector, itemSelector, padding, defaultColumnSize, minWidth))
     }
 
     const json2FormData = function (data) {
@@ -310,6 +359,7 @@ window.$ = (function (window, $) {
         post: post,
         get: get,
         request: request,
+        waterfall: waterfall,
     }
     for (const _func in func) {
         $[_func] = func[_func]
