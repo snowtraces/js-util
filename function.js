@@ -300,7 +300,7 @@ window.$ = (function (window, $) {
         let totalWidth = container.offsetWidth
 
         let singleWidth = ~~((totalWidth - (columnSize - 1) * padding) / columnSize)
-        while (singleWidth < 260) {
+        while (singleWidth < 260 && columnSize > 1) {
             columnSize -= 1
             singleWidth = ~~((totalWidth - (columnSize - 1) * padding) / columnSize)
         }
