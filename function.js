@@ -294,10 +294,11 @@ window.$ = (function (window, $) {
     /**
      * 瀑布流
      */
-    const waterfall = function (containerSelector, itemSelector, padding = 12, defaultColumnSize = 3, minWidth = 260) {
+    const waterfall = function (containerSelector, padding = 12, defaultColumnSize = 3, minWidth = 260) {
         let columnSize = defaultColumnSize;
         let container = $.el(containerSelector)
         let totalWidth = container.offsetWidth
+        let itemSelector = containerSelector + " > *"
 
         let singleWidth = ~~((totalWidth - (columnSize - 1) * padding) / columnSize)
         while (singleWidth < 260 && columnSize > 1) {
@@ -323,14 +324,14 @@ window.$ = (function (window, $) {
             // 2. 挂载当前数据
             let _top = ~~(minPosition + padding);
             let _left = ~~(_column * (singleWidth + padding))
-            item.setAttribute(`style`, `width: ${singleWidth}px;left: ${_left}px; top: ${_top}px`)
+            item.setAttribute(`style`, `position: absolute; width: ${singleWidth}px; left: ${_left}px; top: ${_top}px`)
 
             // 3. 更新上下文
             lastPosition[_column] = lastPosition[_column] + padding + _height
         })
 
         // 绑定resize
-        window.onresize = this.throttle(() => waterfall(containerSelector, itemSelector, padding, defaultColumnSize, minWidth))
+        window.onresize = this.throttle(() => waterfall(containerSelector, padding, defaultColumnSize, minWidth))
     }
 
     const json2FormData = function (data) {
