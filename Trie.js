@@ -1,6 +1,8 @@
 let Trie = function (key) {
     this.root = {}
     this.key = key
+    this.WORD_FLAG_KEY = "_w"
+    this.DATA_KEY = "_d"
 }
 
 Trie.prototype.push = function (word, data) {
@@ -12,8 +14,8 @@ Trie.prototype.push = function (word, data) {
         node = node[c]
     }
 
-    node.isW = true
-    node.data = data
+    node[this.WORD_FLAG_KEY] = 1
+    node[this.DATA_KEY] = data
 }
 
 Trie.prototype.pull = function (word) {
@@ -25,8 +27,8 @@ Trie.prototype.pull = function (word) {
     }
 
     // 1. 标记为非叶子节点
-    delete node.isW
-    delete node.data
+    delete node[this.WORD_FLAG_KEY]
+    delete node[this.DATA_KEY]
     // 2. 向上递归，没有下级节点，移除当前节点
     let _node = nodeList.pop() // {c:node[c]}
     while (_node) {
@@ -44,7 +46,7 @@ Trie.prototype.pull = function (word) {
     }
 }
 
-Trie.prototype.search = function (word, caseSensitive) {
+Trie.prototype.search = function (word, caseSensitive = false) {
     let node = this.root
     if (!caseSensitive) {
         // 大小写不敏感
@@ -60,15 +62,34 @@ Trie.prototype.search = function (word, caseSensitive) {
         let firstUpperWord = firstUpperCase(word)
         return this.search(firstUpperWord, true)
     }
+
+    let resultList = []
+    let idx = 0;
     for (let c of word) {
         if (node[c]) {
             node = node[c]
         } else {
-            return false
+            if (c === "*") {
+                for (let _c in node) {
+                    if (_c === this.WORD_FLAG_KEY || _c === this.DATA_KEY || _c === 'word') {
+                        continue
+                    }
+                    let _resultList = this.search(word.substring(0, idx) + _c + word.substring(idx + 1, word.length), true)
+                    resultList.push(..._resultList)
+                }
+                break
+            } else {
+                return resultList
+            }
         }
+        idx++;
     }
-    node.word = word
-    return node
+    if (idx === word.length) {
+        node.word = word
+        resultList.push(node)
+    }
+
+    return resultList
 }
 
 Trie.prototype.save2Local = function () {
@@ -121,17 +142,17 @@ Trie.prototype.findWord = function (base, result, limit) {
     for (const baseWord in base) {
         let startNode = base[baseWord]
         for (let c in startNode) {
-            if (c === 'isW' || c === 'data' || c === 'word') {
+            if (c === this.WORD_FLAG_KEY || c === this.DATA_KEY || c === 'word') {
                 continue
             }
             let _node = startNode[c]
-            if (_node.isW) {
-                result[baseWord + c] = _node.data
+            if (_node[this.WORD_FLAG_KEY]) {
+                result[baseWord + c] = _node[this.DATA_KEY]
             }
 
             _base[baseWord + c] = _node
         }
     }
 
-    return this.findWord(_base, result)
+    return this.findWord(_base, result, limit)
 }
