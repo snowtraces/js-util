@@ -334,6 +334,18 @@ window.$ = (function (window, $) {
         window.onresize = this.throttle(() => waterfall(containerSelector, padding, defaultColumnSize, minWidth))
     }
 
+    /**
+     * 显示切换
+     */
+    const toggle = function(selector, displayType = 'block') {
+       let isHide = window.getComputedStyle($.el(selector)).display === 'none'
+       if (isHide) {
+           $.el(selector).style.display = displayType
+       } else {
+        $.el(selector).style.display = 'none'
+       }
+    }
+
     const json2FormData = function (data) {
         let formData = new FormData()
         for (let key in data) {
@@ -361,6 +373,7 @@ window.$ = (function (window, $) {
         get: get,
         request: request,
         waterfall: waterfall,
+        toggle: toggle,
     }
     for (const _func in func) {
         $[_func] = func[_func]
