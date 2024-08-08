@@ -1,5 +1,6 @@
 window.$ = (function (window, $) {
     const mdParser = function (mdText) {
+        mdText = mdText + '\r\n '
         let result = {}
         let result_list = []
         let script_list = []
@@ -84,7 +85,6 @@ window.$ = (function (window, $) {
             // 新行状态切换
             flag_newLine = c && c === '\n'
         }
-
         return result;
     }
 
@@ -100,10 +100,7 @@ window.$ = (function (window, $) {
                 return result;
             }
 
-            // 图片
-            text = text.replace(/\!\[([^\]]+)\]\(([^\)]+)\)/g, '<img title="$1" src="$2" />')
-            // 超链接
-            text = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a title="$1" href="$2" target="_blank">$1</a>')
+
             // 标题
             if (text.indexOf('## ') !== -1) {
                 text = text.replace(/(\n|^)## ([^\n]*)(\n|$)/g, '<h2>$2</h2>')
@@ -118,8 +115,7 @@ window.$ = (function (window, $) {
                 text = text.replace(/(\n|^)##### ([^\n]*)(\n|$)/g, '<h5>$2</h5>')
             }
 
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
-            text = text.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+            text = plainTextFmt(text)
 
             result.data = text
             result.type = 'text'
@@ -177,13 +173,27 @@ window.$ = (function (window, $) {
                     text = text.replace(ul_regex, ul_html)
                 }
 
-                text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
+                text = plainTextFmt(text)
 
                 result.data = text
                 result.type = 'ul'
                 return result
             }
         }
+    }
+
+    const plainTextFmt = function (text) {
+        if (!text) {
+            return text
+        }
+
+        // 图片
+        text = text.replace(/\!\[([^\]]+)\]\(([^\)]+)\)/g, '<img title="$1" src="$2" />')
+        // 超链接
+        text = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a title="$1" href="$2" target="_blank">$1</a>')
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+        return text
     }
 
 
@@ -218,8 +228,7 @@ window.$ = (function (window, $) {
                 </tr>
             </thead>
             <tbody>
-                ${
-            data_rows.map(row => `<tr>${row.map(data => `<td>${data}</td>`).join('')}</tr>`).join('')
+                ${data_rows.map(row => `<tr>${row.map(data => `<td>${plainTextFmt(data)}</td>`).join('')}</tr>`).join('')
             }
             </tbody>
         </table>`
