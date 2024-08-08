@@ -7,38 +7,15 @@ window.$ = (function (window, $) {
         result.script = script_list
 
         let flag_newLine = true;
-        let line_idx = -1;
-        let char_idx = -1;
-        let first_not_blank_char = null;
-        let last_char = null;
-        // 每行非空字符开始索引
-        let start_idx = [];
 
         let pair_stack = [];
         let data_stack = [];
         let line_data_stack = [];
-        let last_pair_idx = -1;
 
         let pair_chars = ['```', '+', '|'];
         let on_text_block = false;
 
         for (const c of mdText) {
-            // 新行初始化
-            if (flag_newLine) {
-                line_idx++;
-                char_idx == -1;
-                start_idx[line_idx] = -1;
-                first_not_blank_char = null;
-
-                last_pair_idx = -1;
-            }
-            char_idx++;
-
-            // 查找第一个非空字符
-            if (!first_not_blank_char && !/\s/.test(c)) {
-                first_not_blank_char = c;
-                start_idx[line_idx] = char_idx;
-            }
 
             if (flag_newLine) {
                 // 新行开始
@@ -52,8 +29,8 @@ window.$ = (function (window, $) {
                         if (on_text_block) {
                             // 在数据块中，判断当前是否已结束
                             // 结束了就弹出数据
-                            if (pair_chars.includes(line_data_stack[0]) || line_data_stack[0] === '`') {
-                                if (line_data_stack[0] !== '`' && line_data_stack[0] === c) {
+                            if (pair_stack[0].includes(line_data_stack[0]) || line_data_stack[0] === '`') { // 单个或`开头
+                                if (line_data_stack[0] !== '`' && line_data_stack[0] === c) { // 非长文本，且和下文连续
                                     continue
                                 }
 
@@ -106,7 +83,6 @@ window.$ = (function (window, $) {
 
             // 新行状态切换
             flag_newLine = c && c === '\n'
-            last_char = c
         }
 
         return result;
@@ -124,7 +100,6 @@ window.$ = (function (window, $) {
                 return result;
             }
 
-
             // 图片
             text = text.replace(/\!\[([^\]]+)\]\(([^\)]+)\)/g, '<img title="$1" src="$2" />')
             // 超链接
@@ -136,8 +111,15 @@ window.$ = (function (window, $) {
             if (text.indexOf('## ') !== -1) {
                 text = text.replace(/(\n|^)### ([^\n]*)(\n|$)/g, '<h3>$2</h3>')
             }
+            if (text.indexOf('## ') !== -1) {
+                text = text.replace(/(\n|^)#### ([^\n]*)(\n|$)/g, '<h4>$2</h4>')
+            }
+            if (text.indexOf('## ') !== -1) {
+                text = text.replace(/(\n|^)##### ([^\n]*)(\n|$)/g, '<h5>$2</h5>')
+            }
 
             text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
+            text = text.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
 
             result.data = text
             result.type = 'text'
