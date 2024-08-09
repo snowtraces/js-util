@@ -72,7 +72,13 @@ window.$ = (function (window, $) {
                         let popped_data = popStack(data_stack)
                         let data_seg = popped_data.data
                         data_stack = []
-                        data_seg && data_seg.trim() && result_list.push(`<p>${data_seg.trim()}</p>`)
+                        if (data_seg && data_seg.trim()) {
+                            if (data_seg.trim().startsWith('<h')) {
+                                result_list.push(data_seg.trim())
+                            } else {
+                                result_list.push(`<p>${data_seg.trim()}</p>`)
+                            }
+                        }
                     }
                 }
 
