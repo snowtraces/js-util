@@ -221,6 +221,7 @@ window.$ = (function (window, $) {
 
         // 转换成html
         return `
+        <div class='table-wrapper'>
         <table>
             <thead>
                 <tr>
@@ -231,7 +232,8 @@ window.$ = (function (window, $) {
                 ${data_rows.map(row => `<tr>${row.map(data => `<td>${plainTextFmt(data)}</td>`).join('')}</tr>`).join('')
             }
             </tbody>
-        </table>`
+        </table>
+        </div>`
     }
 
     const metaParser = function (metaText) {
